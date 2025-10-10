@@ -107,7 +107,7 @@ int main(){
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f,
-        0.5f, 0.5f, 0.0f,
+        0.0f, 0.5f, 0.0f,
         0.5f, -0.5f, 0.0f,
     };
 
@@ -131,8 +131,9 @@ int main(){
         rgb.r = wrap(-1.0, 1.0, rgb.r + 0.002);
         rgb.g = wrap(-1.0, 1.0, rgb.g + 0.002);
         rgb.b = wrap(-1.0, 1.0, rgb.b + 0.002);
+        std::cout << rgb.r;
         glfwPollEvents();
-        glClearColor(rgb.r, rgb.g, rgb.b, 0.0f);
+        glClearColor(fabs(rgb.r), fabs(rgb.g), fabs(rgb.b), 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
