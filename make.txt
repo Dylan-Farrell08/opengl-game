@@ -1,0 +1,1 @@
+g++ -Iinclude -Llib src/main.cpp src/glad.c -lglfw3dll -o open.exe
