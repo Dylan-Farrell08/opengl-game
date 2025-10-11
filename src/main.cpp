@@ -5,11 +5,29 @@
 #include <random>
 #include <chrono>
 #include <thread>
+#include <map>
+#include <src/headers/shader.h>
+GLFWwindow* window;
+
 struct rgb{
     float r = 0.01;
     float g = 0.01;
     float b = 0.00;
 }rgb;
+
+struct input{
+    bool w;
+    bool a;
+    bool s;
+    bool d;
+}input;
+
+struct vec3{
+    float x = .6;
+    float y;
+    float z;
+}player_vel;
+
 float wrap(float lowest, float highest, float number){
     float remainder = 0.0;
     while (number > highest){
@@ -20,6 +38,16 @@ float wrap(float lowest, float highest, float number){
     
 }
 
+void input_handeler(){
+    input.w = glfwGetKey(window, GLFW_KEY_W);
+    input.a = glfwGetKey(window, GLFW_KEY_A);
+    input.s = glfwGetKey(window, GLFW_KEY_S);
+    input.d = glfwGetKey(window, GLFW_KEY_D);
+    if (input.w){player_vel.y =  1.0f;};
+    if (input.s){player_vel.y = -1.0f;};
+    if (input.a){player_vel.x =  1.0f;};
+    if (input.d){player_vel.x = -1.0f;}; 
+}
 
 int main(){
     //just turning on glfw basically does nbothing else to my knowledge
@@ -30,7 +58,7 @@ int main(){
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
     //just making a blank window thats 800 by 800, with the second part being the name of the window. idk what the last two do
-    GLFWwindow* window = glfwCreateWindow(800,800, "my awesome game", NULL, NULL);
+    window = glfwCreateWindow(800,800, "my awesome game", NULL, NULL);
     //checking if the windows not there and if its not then it basically kills of the program
     if (window == NULL)
     {
@@ -56,93 +84,58 @@ int main(){
     rgb.b = (float)(rand()) / (float)(RAND_MAX);
 
     //-----------------------------------------------------------------------------------------------------
+    //this is making a pointer that we can refrence any where with
+    //an & symbol and its kind of a function but is actually mimicing a whole new file that
+    //is in the file type glsl
+    
+    Shader ourShader("shaders/fragment.fs", "shaders/vertex.vs");
 
-    const char* vertexShaderSrc =
-        "#version 330 core\n" 
-        "layout (location = 0) in vec3 aPos;\n"
-        "void main() {\n"
-        "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0f);\n"
-        "} \0";
-
-    const char* fragmentShaderSrc = 
-        "#version 330 core\n" 
-        "out vec4 fragColor;\n"
-        "void main() {\n"
-        "   fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
-        "} \0";
-
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSrc, 0);
-    glCompileShader(vertexShader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success){
-        glGetShaderInfoLog(vertexShader, 512, 0, infoLog);
-        std::cout << "failed to make triangle ERR:" << infoLog << std::endl;
-    };
-
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSrc, 0);
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success){
-        glGetShaderInfoLog(fragmentShader, 512, 0, infoLog);
-        std::cout << "failed to make fragment ERR:" << infoLog << std::endl;
-    };
-
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);  
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success){
-        glGetProgramInfoLog(shaderProgram, 512, 0, infoLog);
-        std::cout << "FAILED TO LINK SHADERS ERR:" << infoLog << std::endl; 
-    };
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
+    //just defining the vertices of the triang with it being (x,y,z)
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.0f, 0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
+       -0.2f, -0.2f, 0.0f,  1.0f, 0.0f, 0.0f,
+        0.0f, 0.2f,  0.0f,  0.0f, 1.0f, 0.0f,
+        0.2f, -0.2f, 0.0f,  0.0f, 0.0f, 1.0f,
     };
-
+    //defining the vertex buffer object which is where they store vertex data in memory
+    //so they can then smoothly show one each frame without worrying if its deformed or ts
+    //vertex array object
     unsigned int VAO, VBO;
+    //just generating them
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    //attaching the actuall vertices to the buffer and telling it what kind of stuff
+    //you're gonna do with it
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
     //gl_dynamic_draw, USE THIS IF THE THING IS MOVING AROUND ALOT
     //gl_static_draw, use this if you only plan on setting the thing once
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,  sizeof(float) * 3, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,  sizeof(float) * 6, (void*)0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,  sizeof(float) * 6, (void*)(3* sizeof(float)));
+    //telling the thing 
     glEnableVertexAttribArray(0);
-
+    glEnableVertexAttribArray(1);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     //-----------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
+        ourShader.use();
+        input_handeler();
         rgb.r = wrap(-1.0, 1.0, rgb.r + 0.002);
         rgb.g = wrap(-1.0, 1.0, rgb.g + 0.002);
         rgb.b = wrap(-1.0, 1.0, rgb.b + 0.002);
-        std::cout << rgb.r;
         glfwPollEvents();
-        glClearColor(fabs(rgb.r), fabs(rgb.g), fabs(rgb.b), 0.0f);
+        glClearColor(fabs(rgb.r), fabs(rgb.g), fabs(rgb.b), 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glfwSwapBuffers(window);
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    glDeleteProgram(shaderProgram);
     glDeleteBuffers(1, &VBO);
     glDeleteVertexArrays(1, &VAO);
     //alot of stuff that basically just destroys the window
