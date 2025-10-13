@@ -1,4 +1,5 @@
 #ifndef SHADER_H
+//
 #define SHADER_H
 
 #include <glad/glad.h>
@@ -11,12 +12,12 @@
 class Shader
 {
 public:
+    //making an id that we will later assign the shader to 
     unsigned int ID;
-    // constructor generates the shader on the fly
-    // ------------------------------------------------------------------------
+    //basic function thing
     Shader(const char* vertexPath, const char* fragmentPath)
     {
-        // 1. retrieve the vertex/fragment source code from filePath
+        // defininf al the diffrent things we will need
         std::string vertexCode;
         std::string fragmentCode;
         std::ifstream vShaderFile;
@@ -26,56 +27,55 @@ public:
         fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
         try 
         {
-            // open files
+            // opens up the files
             vShaderFile.open(vertexPath);
             fShaderFile.open(fragmentPath);
+            //shoves the files into streams the then later be turned into strings
             std::stringstream vShaderStream, fShaderStream;
-            // read file's buffer contents into streams
             vShaderStream << vShaderFile.rdbuf();
             fShaderStream << fShaderFile.rdbuf();
-            // close file handlers
+            //just closing up the files
             vShaderFile.close();
             fShaderFile.close();
-            // convert stream into string
+            // makes the streams into strings 
             vertexCode   = vShaderStream.str();
             fragmentCode = fShaderStream.str();
         }
         catch (std::ifstream::failure& e)
         {
-            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+            std::cout << "file didnt read: " << e.what() << std::endl;
         }
         const char* vShaderCode = vertexCode.c_str();
         const char * fShaderCode = fragmentCode.c_str();
         // 2. compile shaders
         unsigned int vertex, fragment;
         // vertex shader
+
+        //this is just making the actual shader from the string then compiling it
         vertex = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertex, 1, &vShaderCode, NULL);
         glCompileShader(vertex);
         checkCompileErrors(vertex, "VERTEX");
-        // fragment Shader
+        // doing the same for fragment shader
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment, 1, &fShaderCode, NULL);
         glCompileShader(fragment);
         checkCompileErrors(fragment, "FRAGMENT");
-        // shader Program
+        // you will never guess what bro
         ID = glCreateProgram();
         glAttachShader(ID, vertex);
         glAttachShader(ID, fragment);
         glLinkProgram(ID);
         checkCompileErrors(ID, "PROGRAM");
-        // delete the shaders as they're linked into our program now and no longer necessary
+        // kills the shaders because they'll clog up memory otherwise
         glDeleteShader(vertex);
         glDeleteShader(fragment);
     }
-    // activate the shader
-    // ------------------------------------------------------------------------
+    // turning on the shader
     void use() 
     { 
         glUseProgram(ID); 
     }
-    // utility uniform functions
-    // ------------------------------------------------------------------------
     void setBool(const std::string &name, bool value) const
     {         
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value); 
@@ -100,6 +100,7 @@ private:
         char infoLog[1024];
         if (type != "PROGRAM")
         {
+            //error checking stuff
             glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
             if (!success)
             {
@@ -109,6 +110,7 @@ private:
         }
         else
         {
+            //more error checking stuff
             glGetProgramiv(shader, GL_LINK_STATUS, &success);
             if (!success)
             {
@@ -119,4 +121,3 @@ private:
     }
 };
 #endif
-

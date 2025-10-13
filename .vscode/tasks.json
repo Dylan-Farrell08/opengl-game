@@ -10,8 +10,9 @@
                 "-std=c++17",
                 "-I${workspaceFolder}/include",
                 "-L${workspaceFolder}/lib",
-                "${workspaceFolder}/main.cpp",
                 "${workspaceFolder}/src/glad.c",
+                "${workspaceFolder}/src/shaders/vertex.vs",
+                "${workspaceFolder}/src/shaders/fragment.fs",
                 "-lglfw3dll",
                 "-o",
                 "${workspaceFolder}/game.exe"

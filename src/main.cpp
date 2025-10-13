@@ -6,7 +6,7 @@
 #include <chrono>
 #include <thread>
 #include <map>
-#include <src/headers/shader.h>
+#include <headers/shader.h>
 GLFWwindow* window;
 
 struct rgb{
@@ -23,7 +23,7 @@ struct input{
 }input;
 
 struct vec3{
-    float x = .6;
+    float x;
     float y;
     float z;
 }player_vel;
@@ -43,7 +43,7 @@ void input_handeler(){
     input.a = glfwGetKey(window, GLFW_KEY_A);
     input.s = glfwGetKey(window, GLFW_KEY_S);
     input.d = glfwGetKey(window, GLFW_KEY_D);
-    if (input.w){player_vel.y =  1.0f;};
+    if (input.w){player_vel.y =  100.0f;};
     if (input.s){player_vel.y = -1.0f;};
     if (input.a){player_vel.x =  1.0f;};
     if (input.d){player_vel.x = -1.0f;}; 
@@ -77,52 +77,57 @@ int main(){
     glClear(GL_COLOR_BUFFER_BIT);
     //swaps the back buffer with the front buffer
     glfwSwapBuffers(window);
-    //checking if anyones pressed the close window button
+
     srand(time(0));
     rgb.r = (float)(rand()) / (float)(RAND_MAX);
     rgb.g = (float)(rand()) / (float)(RAND_MAX);
     rgb.b = (float)(rand()) / (float)(RAND_MAX);
 
-    //-----------------------------------------------------------------------------------------------------
-    //this is making a pointer that we can refrence any where with
-    //an & symbol and its kind of a function but is actually mimicing a whole new file that
-    //is in the file type glsl
-    
-    Shader ourShader("shaders/fragment.fs", "shaders/vertex.vs");
-
+    Shader ourShader("src/shaders/vertex.vs","src/shaders/fragment.fs");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);        
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     //just defining the vertices of the triang with it being (x,y,z)
     float vertices[] = {
-       -0.2f, -0.2f, 0.0f,  1.0f, 0.0f, 0.0f,
-        0.0f, 0.2f,  0.0f,  0.0f, 1.0f, 0.0f,
-        0.2f, -0.2f, 0.0f,  0.0f, 0.0f, 1.0f,
+        0.5f,  0.5f, 0.0f,// top right
+        0.5f, -0.5f, 0.0f,// bottom right
+        -0.5f, -0.5f, 0.0f,// bottom left 
+        -0.5f, 0.5f, 0.0f
     };
+    unsigned int indices[] = {
+        0, 1, 3,
+        1, 2, 3,
+    };
+    float texCoords[] = {
+        0.0f, 0.0f,  // lower-left corner  
+        1.0f, 0.0f,  // lower-right corner
+        0.5f, 1.0f,   // top-center corner
+        -0.5f, 0.5f
+    };
+    
     //defining the vertex buffer object which is where they store vertex data in memory
     //so they can then smoothly show one each frame without worrying if its deformed or ts
     //vertex array object
     unsigned int VAO, VBO;
+    unsigned int EBO;
     //just generating them
-    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
 
     glBindVertexArray(VAO);
+    // 2. copy our vertices array in a vertex buffer for OpenGL to use
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    //attaching the actuall vertices to the buffer and telling it what kind of stuff
-    //you're gonna do with it
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-    //gl_dynamic_draw, USE THIS IF THE THING IS MOVING AROUND ALOT
-    //gl_static_draw, use this if you only plan on setting the thing once
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,  sizeof(float) * 6, (void*)0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,  sizeof(float) * 6, (void*)(3* sizeof(float)));
-    //telling the thing 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // 3. copy our index array in a element buffer for OpenGL to use
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // 4. then set the vertex attributes pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0); 
     //-----------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
-        ourShader.use();
+        std::cout << player_vel.x << " "<< player_vel.y;
+        ourShader.setFloat("offset.x", player_vel.x);
         input_handeler();
         rgb.r = wrap(-1.0, 1.0, rgb.r + 0.002);
         rgb.g = wrap(-1.0, 1.0, rgb.g + 0.002);
@@ -130,13 +135,15 @@ int main(){
         glfwPollEvents();
         glClearColor(fabs(rgb.r), fabs(rgb.g), fabs(rgb.b), 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        ourShader.use();
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
         glfwSwapBuffers(window);
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
     glDeleteVertexArrays(1, &VAO);
     //alot of stuff that basically just destroys the window
     glfwDestroyWindow(window);
