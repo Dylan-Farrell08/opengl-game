@@ -7,6 +7,7 @@
 #include <thread>
 #include <map>
 #include <headers/shader.h>
+#include <headers/movement.cpp>
 GLFWwindow* window;
 
 struct rgb{
@@ -15,18 +16,7 @@ struct rgb{
     float b = 0.00;
 }rgb;
 
-struct input{
-    bool w;
-    bool a;
-    bool s;
-    bool d;
-}input;
 
-struct vec3{
-    float x;
-    float y;
-    float z;
-}player_vel;
 
 float wrap(float lowest, float highest, float number){
     float remainder = 0.0;
@@ -38,16 +28,6 @@ float wrap(float lowest, float highest, float number){
     
 }
 
-void input_handeler(){
-    input.w = glfwGetKey(window, GLFW_KEY_W);
-    input.a = glfwGetKey(window, GLFW_KEY_A);
-    input.s = glfwGetKey(window, GLFW_KEY_S);
-    input.d = glfwGetKey(window, GLFW_KEY_D);
-    if (input.w){player_vel.y =  100.0f;};
-    if (input.s){player_vel.y = -1.0f;};
-    if (input.a){player_vel.x =  1.0f;};
-    if (input.d){player_vel.x = -1.0f;}; 
-}
 
 int main(){
     //just turning on glfw basically does nbothing else to my knowledge
@@ -128,7 +108,7 @@ int main(){
     while (!glfwWindowShouldClose(window)){
         std::cout << player_vel.x << " "<< player_vel.y;
         ourShader.setFloat("offset.x", player_vel.x);
-        input_handeler();
+        body(window);
         rgb.r = wrap(-1.0, 1.0, rgb.r + 0.002);
         rgb.g = wrap(-1.0, 1.0, rgb.g + 0.002);
         rgb.b = wrap(-1.0, 1.0, rgb.b + 0.002);
