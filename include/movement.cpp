@@ -2,18 +2,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <cmath>
-
-float speed = 15;
-float accel = 0.15;
-float frict = 0.04;
+#include "headers/globals.h"
+float speed = 0.09;
+float accel = 0.009;
+float frict = 0.004;
 bool dir;
 
 int counter = 0;
-struct vec3{
-    float x;
-    float y;
-    float z;
-}player_dir, player_vel, default_vec;
 
 struct input{
     bool w;
@@ -24,15 +19,12 @@ struct input{
 
 
 float lerp(float target_value, float goal, float rate){
-    if (goal <= 0){
-        rate = -rate;
+    float diffrence = goal - target_value;
+    if (fabs(diffrence) <= rate){
+        return goal;
     };
-    target_value = target_value + rate;
-
-    if (abs(target_value) >= goal){
-        target_value = goal;
-    };
-    return target_value;
+    //(diffrence > 0 ? 1 : -1) the first part before the ? is basically an if statement but smaller, then the second part (rate : -rate) is then the true and false outcomes
+    return target_value + (diffrence > 0.0 ? rate : -rate);
 };
 
 void input_handeler(GLFWwindow* highlighted_window){
@@ -44,8 +36,8 @@ void input_handeler(GLFWwindow* highlighted_window){
     input.d = glfwGetKey(highlighted_window, GLFW_KEY_D);
     if (input.w){player_dir.y =  1.0f;};
     if (input.s){player_dir.y = -1.0f;};
-    if (input.a){player_dir.x =  1.0f;};
-    if (input.d){player_dir.x = -1.0f;}; 
+    if (input.a){player_dir.x =  -1.0f;};
+    if (input.d){player_dir.x = 1.0f;}; 
 }
 
 void move(){
@@ -61,8 +53,9 @@ void move(){
     };
 }
 
-void body(GLFWwindow* window){
+vec3 player_movement(GLFWwindow* window){
     input_handeler(window);
     move();
     counter++;
+    return player_vel;
 }
